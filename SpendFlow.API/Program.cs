@@ -14,7 +14,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// --- NUEVA CONFIGURACIÓN DE JWT ---
+// --- CONFIGURACIÓN DE JWT ---
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -30,11 +30,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
+// --- CORRECCIÓN CORS: Permitir conexiones desde Netlify / Producción ---
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("PermitirReact", policy =>
     {
-        policy.WithOrigins("http://localhost:5173") // El puerto de React
+        policy.AllowAnyOrigin() // Permite localhost Y Netlify sin problemas
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
@@ -45,9 +46,6 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
-app.UseCors("PermitirReact");
-
-
 // Configurar el pipeline de solicitudes HTTP.
 if (app.Environment.IsDevelopment())
 {
@@ -57,9 +55,11 @@ if (app.Environment.IsDevelopment())
 
 //app.UseHttpsRedirection();
 
-// --- ORDEN ESTRICTO PARA JWT ---
-app.UseAuthentication(); 
-app.UseAuthorization(); 
+// --- ORDEN ESTRICTO: CORS SIEMPRE ANTES DE AUTH ---
+app.UseCors("PermitirReact");
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapControllers();
 
