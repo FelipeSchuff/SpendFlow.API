@@ -65,41 +65,35 @@ namespace SpendFlow.API.Controllers
 
         // 3. PUT: api/Movimientos/5 -> (Protegido para que nadie edite gastos ajenos)
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutMovimiento(int id, Movimiento movimiento)
+        public async Task<IActionResult> PutMovimiento(int id, MovimientoDto dto)
         {
-            if (id != movimiento.Id)
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            // Buscamos el movimiento REAL en la base de datos, no confiamos en lo que manda el cliente
+            var movimientoExistente = await _context.Movimientos.FindAsync(id);
+
+            if (movimientoExistente == null)
             {
-                return BadRequest("El ID de la ruta no coincide con el del movimiento.");
+                return NotFound("El movimiento que intentas actualizar no existe.");
             }
 
-            // Capa de seguridad extra: verificar que el movimiento que intenta editar le pertenece
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (movimiento.UsuarioId.ToString() != userId)
+            // Comparamos contra el UsuarioId que YA ESTABA en la base de datos
+            if (movimientoExistente.UsuarioId.ToString() != userId)
             {
                 return Forbid("No tienes permiso para modificar este registro.");
             }
 
-            _context.Entry(movimiento).State = EntityState.Modified;
+            // Solo actualizamos los campos permitidos, uno por uno
+            movimientoExistente.Descripcion = dto.Descripcion;
+            movimientoExistente.Monto = dto.Monto;
+            movimientoExistente.Fecha = dto.Fecha;
+            movimientoExistente.Tipo = dto.Tipo;
+            movimientoExistente.Categoria = dto.Categoria;
 
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!_context.Movimientos.Any(e => e.Id == id))
-                {
-                    return NotFound("El movimiento que intentas actualizar no existe.");
-                }
-                else
-                {
-                    throw;
-                }
-            }
+            await _context.SaveChangesAsync();
 
-            return NoContent();
+            return Ok(movimientoExistente);
         }
-
         // 4. DELETE: api/Movimientos/5 -> (Protegido para que nadie borre gastos ajenos)
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteMovimiento(int id)
