@@ -30,12 +30,15 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-// --- CORRECCIÓN CORS: Permitir conexiones desde Netlify / Producción ---
+// --- CORS ---
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("PermitirReact", policy =>
     {
-        policy.AllowAnyOrigin() // Permite localhost Y Netlify sin problemas
+        policy.WithOrigins(
+                "https://spendflow.netlify.app",
+                "http://localhost:5173"
+              )
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
