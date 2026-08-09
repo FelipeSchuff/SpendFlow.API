@@ -49,18 +49,24 @@ namespace SpendFlow.API.Controllers
 
         // 2. POST: api/Movimientos -> (Asigna el dueño automáticamente antes de guardar)
         [HttpPost]
-        public async Task<ActionResult<Movimiento>> PostMovimiento(Movimiento movimiento)
+        public async Task<ActionResult<Movimiento>> PostMovimiento(MovimientoDto dto)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-            // ANTES de guardarlo en la base de datos, le estampamos el ID del usuario
-            // (Asumiendo que UsuarioId es de tipo int en tu modelo)
-            movimiento.UsuarioId = int.Parse(userId!);
+            var nuevoMovimiento = new Movimiento
+            {
+                Descripcion = dto.Descripcion,
+                Monto = dto.Monto,
+                Fecha = dto.Fecha,
+                Tipo = dto.Tipo,
+                Categoria = dto.Categoria,
+                UsuarioId = int.Parse(userId!)  
+            };
 
-            _context.Movimientos.Add(movimiento);
+            _context.Movimientos.Add(nuevoMovimiento);
             await _context.SaveChangesAsync();
 
-            return Ok(movimiento);
+            return Ok(nuevoMovimiento);
         }
 
         // 3. PUT: api/Movimientos/5 -> (Protegido para que nadie edite gastos ajenos)
